@@ -248,8 +248,10 @@ public class SpringApplication {
 	 * @see #run(Class, String[])
 	 * @see #SpringApplication(ResourceLoader, Class...)
 	 * @see #setSources(Set)
+	 * public方法构造函数，在静态的run方法中调用。因为是Public，所以也可以由客户手动调用
 	 */
 	public SpringApplication(Class<?>... primarySources) {
+
 		this(null, primarySources);
 	}
 
@@ -259,36 +261,68 @@ public class SpringApplication {
 	 * documentation for details. The instance can be customized before calling
 	 * {@link #run(String...)}.
 	 * @param resourceLoader the resource loader to use
+	 *                       通常默认为null
 	 * @param primarySources the primary bean sources
 	 * @see #run(Class, String[])
 	 * @see #setSources(Set)
+	 * 构造函数之一，我们看到如果自定义SpringApplication在初始化过程中，是可以
+	 * 通过ResourceLoader来引入自定义资源的
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public SpringApplication(ResourceLoader resourceLoader, Class<?>... primarySources) {
+		// 1、资源初始化资源加载器为 null
 		this.resourceLoader = resourceLoader;
+		// 2、断言主要加载资源类不能为 null，否则报错
 		Assert.notNull(primarySources, "PrimarySources must not be null");
+		// 3、初始化主要加载资源类集合并去重
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
+		// 4、推断当前 WEB 应用类型
 		this.webApplicationType = deduceWebApplicationType();
+		// 5、设置应用上线文初始化器，用来初始化指定的 Spring 应用上下文，
+		// 如注册属性资源、激活 Profiles 等。也是在这里开始首次加载spring.factories文件
 		setInitializers((Collection) getSpringFactoriesInstances(
 				ApplicationContextInitializer.class));
+		// 6、设置监听器，第二次加载spring.factories文件
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
+		// 7、推断主入口应用类
 		this.mainApplicationClass = deduceMainApplicationClass();
 	}
 
+	/**
+	 * Deduce为推断，推论，演译之义，在此为推断。
+	 * 推断将用启动的Web类型
+	 * @return
+	 */
 	private WebApplicationType deduceWebApplicationType() {
+		/**
+		 * 先判断是否符合响应式WEB项目
+		 */
 		if (ClassUtils.isPresent(REACTIVE_WEB_ENVIRONMENT_CLASS, null)
 				&& !ClassUtils.isPresent(MVC_WEB_ENVIRONMENT_CLASS, null)
 				&& !ClassUtils.isPresent(JERSEY_WEB_ENVIRONMENT_CLASS, null)) {
 			return WebApplicationType.REACTIVE;
 		}
+		/**
+		 * 判断是否符合非WEB项目
+		 * （条件是不包含默认的Servlet相关类）
+		 */
 		for (String className : WEB_ENVIRONMENT_CLASSES) {
 			if (!ClassUtils.isPresent(className, null)) {
 				return WebApplicationType.NONE;
 			}
 		}
+		/**
+		 * 默认是SERVLET WEB项目
+		 */
 		return WebApplicationType.SERVLET;
 	}
 
+	/**
+	 * 推断主程序入口类
+	 * 通过构造一个运行时异常，再遍历异常栈中的方法名，获取方法名为 main 的栈帧，从
+	 * 来得到入口类的名字再返回该类。
+	 * @return
+	 */
 	private Class<?> deduceMainApplicationClass() {
 		try {
 			StackTraceElement[] stackTrace = new RuntimeException().getStackTrace();
@@ -309,30 +343,46 @@ public class SpringApplication {
 	 * {@link ApplicationContext}.
 	 * @param args the application arguments (usually passed from a Java main method)
 	 * @return a running {@link ApplicationContext}
+	 * SpringApplications核心关键入口方法
 	 */
 	public ConfigurableApplicationContext run(String... args) {
+		//时间监控
 		StopWatch stopWatch = new StopWatch();
 		stopWatch.start();
+		//Spring容器，初始化为空
 		ConfigurableApplicationContext context = null;
 		Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
+		// java.awt.headless是J2SE的一种模式用于在缺少显示屏、键盘或者鼠标时的系统
+		// 配置，很多监控工具如jconsole 需要将该值设置为true，系统变量默认为true
 		configureHeadlessProperty();
+		//获取spring.factories中的监听器变量，args为指定的参数数组，默认为当前类SpringApplication
+		//第一步：获取并启动监听器
 		SpringApplicationRunListeners listeners = getRunListeners(args);
 		listeners.starting();
 		try {
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(
 					args);
+			//第二步：构造容器环境env
 			ConfigurableEnvironment environment = prepareEnvironment(listeners,
 					applicationArguments);
+			//设置需要忽略的bean
 			configureIgnoreBeanInfo(environment);
+			//启动时打印的banner信息
 			Banner printedBanner = printBanner(environment);
+			//第三步：创建容器
 			context = createApplicationContext();
+			//第四步：实例化SpringBootExceptionReporter.class，用来支持报告关于启动的错误
 			exceptionReporters = getSpringFactoriesInstances(
 					SpringBootExceptionReporter.class,
 					new Class[] { ConfigurableApplicationContext.class }, context);
+			//第五步：准备容器
 			prepareContext(context, environment, listeners, applicationArguments,
 					printedBanner);
+			//第六步：刷新容器
 			refreshContext(context);
+			//第七步：刷新容器后的扩展接口
 			afterRefresh(context, applicationArguments);
+			//容器启动完成，停止计时
 			stopWatch.stop();
 			if (this.logStartupInfo) {
 				new StartupInfoLogger(this.mainApplicationClass)
@@ -579,6 +629,7 @@ public class SpringApplication {
 	 * class before falling back to a suitable default.
 	 * @return the application context (not yet refreshed)
 	 * @see #setApplicationContextClass(Class)
+	 * 创建容器的核心入口方法
 	 */
 	protected ConfigurableApplicationContext createApplicationContext() {
 		Class<?> contextClass = this.applicationContextClass;
@@ -1231,9 +1282,14 @@ public class SpringApplication {
 	/**
 	 * Static helper that can be used to run a {@link SpringApplication} from the
 	 * specified source using default settings.
+	 * 一个静态的辅助方法，可以使用指定的资源文件使用默认配置来启动一个SpringApplicatioin应用。
 	 * @param primarySource the primary source to load
+	 *                      运行的主类入口，此类通常会配置注解@SpringApplication
 	 * @param args the application arguments (usually passed from a Java main method)
+	 *             			Main方法中的入口参数
 	 * @return the running {@link ApplicationContext}
+	 * 			返回一个可配置的ApplicationContext
+	 * roboslyq-->最常用的入口方法
 	 */
 	public static ConfigurableApplicationContext run(Class<?> primarySource,
 			String... args) {
@@ -1246,9 +1302,14 @@ public class SpringApplication {
 	 * @param primarySources the primary sources to load
 	 * @param args the application arguments (usually passed from a Java main method)
 	 * @return the running {@link ApplicationContext}
+	 * SpringBoot支持多资源启动
+	 * 我们也可以在main函数中，自己创建SpringApplication的实例，然后调用实例方法run。
 	 */
 	public static ConfigurableApplicationContext run(Class<?>[] primarySources,
 			String[] args) {
+		/**
+		 * 调用构造函数，传入多资源
+		 */
 		return new SpringApplication(primarySources).run(args);
 	}
 
