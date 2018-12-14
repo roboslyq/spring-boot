@@ -356,8 +356,9 @@ public class SpringApplication {
 		// 配置，很多监控工具如jconsole 需要将该值设置为true，系统变量默认为true
 		configureHeadlessProperty();
 		//获取spring.factories中的监听器变量，args为指定的参数数组，默认为当前类SpringApplication
-		//第一步：获取并启动监听器
+		//第一步：获取监听器
 		SpringApplicationRunListeners listeners = getRunListeners(args);
+		//发送ApplicationStartingEvent事件
 		listeners.starting();
 		try {
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(
@@ -422,6 +423,14 @@ public class SpringApplication {
 		return environment;
 	}
 
+	/**
+	 * 准备容器
+	 * @param context
+	 * @param environment
+	 * @param listeners
+	 * @param applicationArguments
+	 * @param printedBanner
+	 */
 	private void prepareContext(ConfigurableApplicationContext context,
 			ConfigurableEnvironment environment, SpringApplicationRunListeners listeners,
 			ApplicationArguments applicationArguments, Banner printedBanner) {
@@ -470,6 +479,10 @@ public class SpringApplication {
 
 	private SpringApplicationRunListeners getRunListeners(String[] args) {
 		Class<?>[] types = new Class<?>[] { SpringApplication.class, String[].class };
+		/**
+		 *  通过反射原理 ，使用工具类SpringFactoriesLoader.loadFactoryNames从
+		 * 从META-INF/spring.factories中获取相应的配置参数
+		 */
 		return new SpringApplicationRunListeners(logger, getSpringFactoriesInstances(
 				SpringApplicationRunListener.class, types, this, args));
 	}
@@ -482,8 +495,10 @@ public class SpringApplication {
 			Class<?>[] parameterTypes, Object... args) {
 		ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 		// Use names and ensure unique to protect against duplicates
+		//使用Set保存，保证加载name唯一性
 		Set<String> names = new LinkedHashSet<>(
 				SpringFactoriesLoader.loadFactoryNames(type, classLoader));
+		//通过反射创建实例
 		List<T> instances = createSpringFactoriesInstances(type, parameterTypes,
 				classLoader, args, names);
 		AnnotationAwareOrderComparator.sort(instances);
@@ -658,6 +673,7 @@ public class SpringApplication {
 
 	/**
 	 * Apply any relevant post processing the {@link ApplicationContext}. Subclasses can
+	 *  应用与ApplicationContext所有相关的后置处理器，子类可以扩展相应实现
 	 * apply additional processing as required.
 	 * @param context the application context
 	 */

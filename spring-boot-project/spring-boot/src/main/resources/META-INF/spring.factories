@@ -1,9 +1,11 @@
 # PropertySource Loaders
+# 两个PropertySource资源加载器，一个普通Properties,一个Yaml风格
 org.springframework.boot.env.PropertySourceLoader=\
 org.springframework.boot.env.PropertiesPropertySourceLoader,\
 org.springframework.boot.env.YamlPropertySourceLoader
 
 # Run Listeners
+# 运行时监听器
 org.springframework.boot.SpringApplicationRunListener=\
 org.springframework.boot.context.event.EventPublishingRunListener
 
@@ -19,6 +21,7 @@ org.springframework.boot.context.config.DelegatingApplicationContextInitializer,
 org.springframework.boot.web.context.ServerPortInfoApplicationContextInitializer
 
 # Application Listeners
+# Applicatoin启动时监听器
 org.springframework.context.ApplicationListener=\
 org.springframework.boot.ClearCachesApplicationListener,\
 org.springframework.boot.builder.ParentContextCloserApplicationListener,\
