@@ -14,6 +14,12 @@ org.springframework.boot.SpringBootExceptionReporter=\
 org.springframework.boot.diagnostics.FailureAnalyzers
 
 # Application Context Initializers
+# 在applicontext.refresh()时会调用，从而让springBoot实现自动自动装配功能。这4个类均实现ApplicationContextInitializer接口
+# 然后通过内部类实现了BeanFactoryPostProcessor接口：
+#       ConfigurationWarningsApplicationContextInitializer$ConfigurationWarningsPostProcessor
+#       SharedMetadataReaderFactoryContextInitializer$CachingMetadataReaderFactoryPostProcessor
+#       ConfigFileApplicationListener$PropertySourceOrderingPostProcessor
+#
 org.springframework.context.ApplicationContextInitializer=\
 org.springframework.boot.context.ConfigurationWarningsApplicationContextInitializer,\
 org.springframework.boot.context.ContextIdApplicationContextInitializer,\

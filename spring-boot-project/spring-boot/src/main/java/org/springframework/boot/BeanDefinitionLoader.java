@@ -174,7 +174,9 @@ class BeanDefinitionLoader {
 		 * 然后查找到@Component注解，最后会查找到@Component注解
 		 */
 		if (isComponent(source)) {
-			//以注解的方式，将启动类bean信息存入beanDefinitionMap
+			//将包含注解@Commponent类（springboot启动类）包装成 beanDefinitaion ，添加到
+			//容器的 beanDefinitionMap中，将启动类bean信息存入beanDefinitionMap.
+			//最终结果是启动类被包装成AnnotatedGenericBeanDefinition了，后续启动类的处理都基于该对象了
 			this.annotatedReader.register(source);
 			return 1;
 		}
@@ -302,6 +304,7 @@ class BeanDefinitionLoader {
 	private boolean isComponent(Class<?> type) {
 		// This has to be a bit of a guess. The only way to be sure that this type is
 		// eligible is to make a bean definition out of it and try to instantiate it.
+		//判断启动类中是否包含@component注解(AnnotationUtils.findAnnotation实现了递归，会查询父注解)
 		if (AnnotationUtils.findAnnotation(type, Component.class) != null) {
 			return true;
 		}

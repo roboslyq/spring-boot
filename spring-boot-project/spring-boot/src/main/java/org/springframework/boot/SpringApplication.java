@@ -81,21 +81,26 @@ import org.springframework.web.context.support.StandardServletEnvironment;
 
 /**
  * Class that can be used to bootstrap and launch a Spring application from a Java main
+ * 该类可用于main()方法引导和启动Spring应用程序
  * method. By default class will perform the following steps to bootstrap your
  * application:
- *
+ * 启动一个SpringApplicaion有以下步骤：
  * <ul>
  * <li>Create an appropriate {@link ApplicationContext} instance (depending on your
  * classpath)</li>
+ * 第一步：创建一个ApplicaionContext上下文
  * <li>Register a {@link CommandLinePropertySource} to expose command line arguments as
  * Spring properties</li>
+ * 第二步：解析commandLine命令行中的参数，并将其放入Spring Properties中
  * <li>Refresh the application context, loading all singleton beans</li>
  * <li>Trigger any {@link CommandLineRunner} beans</li>
+ * 第三步：启动ApplicationContext,加载单例Bean
  * </ul>
  *
  * In most circumstances the static {@link #run(Class, String[])} method can be called
  * directly from your {@literal main} method to bootstrap your application:
- *
+ * 在大多数场景下可以使用静态的SpringAppliation.run(Class, String[])方法来启动你的应用
+ * 启动方法DEMO如下：
  * <pre class="code">
  * &#064;Configuration
  * &#064;EnableAutoConfiguration
@@ -112,7 +117,7 @@ import org.springframework.web.context.support.StandardServletEnvironment;
  * <p>
  * For more advanced configuration a {@link SpringApplication} instance can be created and
  * customized before being run:
- *
+ *在启动之前你可以设置很多自己的定制化参数，如下：
  * <pre class="code">
  * public static void main(String[] args) throws Exception {
  *   SpringApplication application = new SpringApplication(MyApplication.class);
@@ -124,6 +129,8 @@ import org.springframework.web.context.support.StandardServletEnvironment;
  * {@link SpringApplication}s can read beans from a variety of different sources. It is
  * generally recommended that a single {@code @Configuration} class is used to bootstrap
  * your application, however, you may also set {@link #getSources() sources} from:
+ * SpringApplication支持一系列不同类型的资源文件。通过情况只要求一个@Configuration注解类引导启动应用。然而，
+ * 你还可以从以下方法中，通过getSources()来获取相应资源：
  * <ul>
  * <li>The fully qualified class name to be loaded by
  * {@link AnnotatedBeanDefinitionReader}</li>
@@ -158,6 +165,7 @@ public class SpringApplication {
 	/**
 	 * The class name of application context that will be used by default for non-web
 	 * environments.
+	 * 在非Web环境下，ApplicationContext默认实现类
 	 */
 	public static final String DEFAULT_CONTEXT_CLASS = "org.springframework.context."
 			+ "annotation.AnnotationConfigApplicationContext";
@@ -165,16 +173,21 @@ public class SpringApplication {
 	/**
 	 * The class name of application context that will be used by default for web
 	 * environments.
+	 * 在Web环境下，ApplicationContext默认实现类
+	 * WEB ENV实现类
 	 */
 	public static final String DEFAULT_WEB_CONTEXT_CLASS = "org.springframework.boot."
 			+ "web.servlet.context.AnnotationConfigServletWebServerApplicationContext";
-
+	/**
+	 * WEB ENV实现类
+	 */
 	private static final String[] WEB_ENVIRONMENT_CLASSES = { "javax.servlet.Servlet",
 			"org.springframework.web.context.ConfigurableWebApplicationContext" };
 
 	/**
 	 * The class name of application context that will be used by default for reactive web
 	 * environments.
+	 * 响应式编程Application（包路径包含reactive）
 	 */
 	public static final String DEFAULT_REACTIVE_WEB_CONTEXT_CLASS = "org.springframework."
 			+ "boot.web.reactive.context.AnnotationConfigReactiveWebServerApplicationContext";
@@ -184,19 +197,25 @@ public class SpringApplication {
 
 	private static final String MVC_WEB_ENVIRONMENT_CLASS = "org.springframework."
 			+ "web.servlet.DispatcherServlet";
-
+	/**
+	 * Jersey RESTful 框架是开源的RESTful框架
+	 */
 	private static final String JERSEY_WEB_ENVIRONMENT_CLASS = "org.glassfish.jersey.server.ResourceConfig";
 
 	/**
 	 * Default banner location.
+	 * 默认的Banner名称：banner.txt
 	 */
 	public static final String BANNER_LOCATION_PROPERTY_VALUE = SpringApplicationBannerPrinter.DEFAULT_BANNER_LOCATION;
 
 	/**
 	 * Banner location property key.
+	 * Banner位置参数名称："spring.banner.location"
 	 */
 	public static final String BANNER_LOCATION_PROPERTY = SpringApplicationBannerPrinter.BANNER_LOCATION_PROPERTY;
-
+	/**
+	 * Headless模式是系统的一种配置模式。在系统可能缺少显示设备、键盘或鼠标这些外设的情况下可以使用该模式。
+	 */
 	private static final String SYSTEM_PROPERTY_JAVA_AWT_HEADLESS = "java.awt.headless";
 
 	private static final Log logger = LogFactory.getLog(SpringApplication.class);
@@ -443,7 +462,12 @@ public class SpringApplication {
 		context.setEnvironment(environment);
 		//后置处理
 		postProcessApplicationContext(context);
-		//执行容器中的ApplicationContextInitializer（包括 spring.factories和自定义的实例）
+		/**
+		 * 执行容器中的ApplicationContextInitializer（包括 spring.factories和自定义的实例）
+		 * 关键核心初始化：springBoot实现自动化配置的相关类就是在此处初始化
+		 * 	这些类实现了springFramework框架中的org.springframework.beans.factory.config.BeanFactoryPostProcessor接口
+		 * 	在springFramework refreshContext会调用。
+		 */
 		applyInitializers(context);
 		//发送容器已经准备好的事件，通知各监听器
 		listeners.contextPrepared(context);
@@ -469,7 +493,9 @@ public class SpringApplication {
 		//获取我们的启动类指定的参数，可以是多个
 		Set<Object> sources = getAllSources();
 		Assert.notEmpty(sources, "Sources must not be empty");
-		//加载我们的启动类，将启动类注入容器(核心关键入口====>)
+		/**
+		 * 加载springBoot启动类，将启动类注入容器(spring容器中bean map)(核心关键入口====>)
+		 */
 		load(context, sources.toArray(new Object[0]));
 		//发布容器已加载事件,通知监听器，容器已准备就绪。
 		listeners.contextLoaded(context);
@@ -801,6 +827,9 @@ public class SpringApplication {
 			logger.debug(
 					"Loading source " + StringUtils.arrayToCommaDelimitedString(sources));
 		}
+		/**
+		 * 从Context中获取BeanDefinitionLoader
+		 */
 		BeanDefinitionLoader loader = createBeanDefinitionLoader(
 				getBeanDefinitionRegistry(context), sources);
 		if (this.beanNameGenerator != null) {
