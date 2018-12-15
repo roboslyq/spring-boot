@@ -124,6 +124,7 @@ class BeanDefinitionLoader {
 	public int load() {
 		int count = 0;
 		for (Object source : this.sources) {
+			//核心关键入口====>
 			count += load(source);
 		}
 		return count;
@@ -131,21 +132,32 @@ class BeanDefinitionLoader {
 
 	private int load(Object source) {
 		Assert.notNull(source, "Source must not be null");
+		//如果是class类型，启用注解类型
+		// 核心关键入口====>
 		if (source instanceof Class<?>) {
 			return load((Class<?>) source);
 		}
+		//如果是resource类型，启用xml解析
 		if (source instanceof Resource) {
 			return load((Resource) source);
 		}
+		//如果是package类型，启用扫描包，例如：@ComponentScan
 		if (source instanceof Package) {
 			return load((Package) source);
 		}
+		//如果是字符串类型，直接加载
 		if (source instanceof CharSequence) {
 			return load((CharSequence) source);
 		}
 		throw new IllegalArgumentException("Invalid source type " + source.getClass());
 	}
 
+	/**
+	 * springBoot2之后会优先选择groovy加载方式，找不到再选用java方式。
+	 * 或许groovy动态加载class文件的性能更胜一筹。
+	 * @param source
+	 * @return
+	 */
 	private int load(Class<?> source) {
 		if (isGroovyPresent()
 				&& GroovyBeanDefinitionSource.class.isAssignableFrom(source)) {
@@ -154,7 +166,15 @@ class BeanDefinitionLoader {
 					GroovyBeanDefinitionSource.class);
 			load(loader);
 		}
+		/**
+		 * 以启动类为例：
+		 * 	断启动类中是否包含@component注解，可我们的启动类并没有该注解。继续跟进会发现，
+		 * 	AnnotationUtils判断是否包含该注解是通过递归实现，注解上的注解若包含指定类型也是可以的。
+		 * 启动类中包含@SpringBootApplication注解，进一步查找到@SpringBootConfiguration注解，
+		 * 然后查找到@Component注解，最后会查找到@Component注解
+		 */
 		if (isComponent(source)) {
+			//以注解的方式，将启动类bean信息存入beanDefinitionMap
 			this.annotatedReader.register(source);
 			return 1;
 		}

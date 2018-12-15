@@ -363,23 +363,23 @@ public class SpringApplication {
 		try {
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(
 					args);
-			//第二步：构造容器环境env
+			//第二步：构造容器环境env（在springFramework基础上扩展，将properties相关配置文件也初始化到env中）
 			ConfigurableEnvironment environment = prepareEnvironment(listeners,
 					applicationArguments);
 			//设置需要忽略的bean
 			configureIgnoreBeanInfo(environment);
 			//启动时打印的banner信息
 			Banner printedBanner = printBanner(environment);
-			//第三步：创建容器
+			//第三步：创建容器（1、创建容器对象）
 			context = createApplicationContext();
 			//第四步：实例化SpringBootExceptionReporter.class，用来支持报告关于启动的错误
 			exceptionReporters = getSpringFactoriesInstances(
 					SpringBootExceptionReporter.class,
 					new Class[] { ConfigurableApplicationContext.class }, context);
-			//第五步：准备容器
+			//第五步：准备容器（2、给容器对象初始化相关环境参数）
 			prepareContext(context, environment, listeners, applicationArguments,
 					printedBanner);
-			//第六步：刷新容器
+			//第六步：刷新容器（3、真启启动容器，完成SpringContext启动）
 			refreshContext(context);
 			//第七步：刷新容器后的扩展接口
 			afterRefresh(context, applicationArguments);
@@ -411,9 +411,14 @@ public class SpringApplication {
 			SpringApplicationRunListeners listeners,
 			ApplicationArguments applicationArguments) {
 		// Create and configure the environment
+		//创建并配置一个StandardServletEnvironment
 		ConfigurableEnvironment environment = getOrCreateEnvironment();
+		//核心入口，加载默认配置
 		configureEnvironment(environment, applicationArguments.getSourceArgs());
+		//通知环境监听器，默认配置已经加载完成，可以加载项目中的配置文件
+		//监听器为ConfigFileApplicationListener
 		listeners.environmentPrepared(environment);
+		//将Env绑定到SpringApplicaion中
 		bindToSpringApplication(environment);
 		if (this.webApplicationType == WebApplicationType.NONE) {
 			environment = new EnvironmentConverter(getClassLoader())
@@ -434,18 +439,25 @@ public class SpringApplication {
 	private void prepareContext(ConfigurableApplicationContext context,
 			ConfigurableEnvironment environment, SpringApplicationRunListeners listeners,
 			ApplicationArguments applicationArguments, Banner printedBanner) {
+		//设置容器环境，包括各种变量
 		context.setEnvironment(environment);
+		//后置处理
 		postProcessApplicationContext(context);
+		//执行容器中的ApplicationContextInitializer（包括 spring.factories和自定义的实例）
 		applyInitializers(context);
+		//发送容器已经准备好的事件，通知各监听器
 		listeners.contextPrepared(context);
+		//打印log
 		if (this.logStartupInfo) {
 			logStartupInfo(context.getParent() == null);
 			logStartupProfileInfo(context);
 		}
 
 		// Add boot specific singleton beans
+		//注册启动参数bean，这里将容器指定的参数封装成bean，注入容器
 		ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
 		beanFactory.registerSingleton("springApplicationArguments", applicationArguments);
+		//设置banner
 		if (printedBanner != null) {
 			beanFactory.registerSingleton("springBootBanner", printedBanner);
 		}
@@ -454,12 +466,19 @@ public class SpringApplication {
 					.setAllowBeanDefinitionOverriding(this.allowBeanDefinitionOverriding);
 		}
 		// Load the sources
+		//获取我们的启动类指定的参数，可以是多个
 		Set<Object> sources = getAllSources();
 		Assert.notEmpty(sources, "Sources must not be empty");
+		//加载我们的启动类，将启动类注入容器(核心关键入口====>)
 		load(context, sources.toArray(new Object[0]));
+		//发布容器已加载事件,通知监听器，容器已准备就绪。
 		listeners.contextLoaded(context);
 	}
 
+	/**
+	 * 调用springFramework中的applicationContext.refresh()，启动SpringApplication
+	 * @param context
+	 */
 	private void refreshContext(ConfigurableApplicationContext context) {
 		refresh(context);
 		if (this.registerShutdownHook) {
@@ -512,10 +531,12 @@ public class SpringApplication {
 		List<T> instances = new ArrayList<>(names.size());
 		for (String name : names) {
 			try {
+				//装载class文件到内存
 				Class<?> instanceClass = ClassUtils.forName(name, classLoader);
 				Assert.isAssignable(type, instanceClass);
 				Constructor<?> constructor = instanceClass
 						.getDeclaredConstructor(parameterTypes);
+				//主要通过反射创建实例,此时通过反射获取实例时会触发EventPublishingRunListener的构造函数
 				T instance = (T) BeanUtils.instantiateClass(constructor, args);
 				instances.add(instance);
 			}
@@ -550,7 +571,15 @@ public class SpringApplication {
 	 */
 	protected void configureEnvironment(ConfigurableEnvironment environment,
 			String[] args) {
+		//加载启动命令行配置属性
 		configurePropertySources(environment, args);
+		//该变量的用法，在项目启动类中，需要显示创建SpringApplication实例，如下：
+		/**
+		 * SpringApplication springApplication = new SpringApplication(MyApplication.class);
+		 * 		//设置profile变量
+		 *         springApplication.setAdditionalProfiles("prd");
+		 *         springApplication.run(MyApplication.class,args);
+		 */
 		configureProfiles(environment, args);
 	}
 
@@ -563,11 +592,14 @@ public class SpringApplication {
 	 */
 	protected void configurePropertySources(ConfigurableEnvironment environment,
 			String[] args) {
+		//获取配置存储集合
 		MutablePropertySources sources = environment.getPropertySources();
+		//判断是否有默认配置，默认为空
 		if (this.defaultProperties != null && !this.defaultProperties.isEmpty()) {
 			sources.addLast(
 					new MapPropertySource("defaultProperties", this.defaultProperties));
 		}
+		//加载命令行配置
 		if (this.addCommandLineProperties && args.length > 0) {
 			String name = CommandLinePropertySource.COMMAND_LINE_PROPERTY_SOURCE_NAME;
 			if (sources.contains(name)) {
@@ -674,6 +706,7 @@ public class SpringApplication {
 	/**
 	 * Apply any relevant post processing the {@link ApplicationContext}. Subclasses can
 	 *  应用与ApplicationContext所有相关的后置处理器，子类可以扩展相应实现
+	 *  默认不执行任何逻辑，因为beanNameGenerator和resourceLoader默认为空
 	 * apply additional processing as required.
 	 * @param context the application context
 	 */
@@ -756,6 +789,10 @@ public class SpringApplication {
 
 	/**
 	 * Load beans into the application context.
+	 * 加载相应的Bean到applicationContext中
+	 * 将启动类加载spring容器beanDefinitionMap中，为后续springBoot 自动化配置奠定基础，
+	 * springBoot提供的各种注解配置也与此有关。这里参数即为我们项目启动时传递的参数：
+	 * SpringApplication.run(SpringBootApplication.class, args)由于我们指定了启动类，所以这里也就是加载启动类到容器。
 	 * @param context the context to load beans into
 	 * @param sources the sources to load
 	 */
@@ -775,6 +812,7 @@ public class SpringApplication {
 		if (this.environment != null) {
 			loader.setEnvironment(this.environment);
 		}
+		//核心关键入口====>
 		loader.load();
 	}
 

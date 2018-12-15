@@ -44,6 +44,7 @@ class SpringApplicationRunListeners {
 	}
 
 	public void starting() {
+		//EventPublishingRunListener具体实现，发布启动事件
 		for (SpringApplicationRunListener listener : this.listeners) {
 			listener.starting();
 		}
@@ -51,6 +52,7 @@ class SpringApplicationRunListeners {
 
 	public void environmentPrepared(ConfigurableEnvironment environment) {
 		for (SpringApplicationRunListener listener : this.listeners) {
+			//配置文件有关的监听器类型为ConfigFileApplicationListener，监听到事件时执行的方法
 			listener.environmentPrepared(environment);
 		}
 	}

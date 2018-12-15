@@ -297,15 +297,15 @@ public class ConfigFileApplicationListener
 	private class Loader {
 
 		private final Log logger = ConfigFileApplicationListener.this.logger;
-
+		//当前环境
 		private final ConfigurableEnvironment environment;
-
+		//类加载器，可以在项目启动时通过 SpringApplication 构造方法指定，默认采用 Launcher.AppClassLoader加载器
 		private final ResourceLoader resourceLoader;
-
+		//资源加载工具类
 		private final List<PropertySourceLoader> propertySourceLoaders;
-
+		//LIFO队列
 		private Deque<Profile> profiles;
-
+		//已处理过的文件
 		private List<Profile> processedProfiles;
 
 		private boolean activatedProfiles;
@@ -316,8 +316,10 @@ public class ConfigFileApplicationListener
 
 		Loader(ConfigurableEnvironment environment, ResourceLoader resourceLoader) {
 			this.environment = environment;
+			//获取类加载器
 			this.resourceLoader = (resourceLoader != null ? resourceLoader
 					: new DefaultResourceLoader());
+			//获取propertySourceLoaders
 			this.propertySourceLoaders = SpringFactoriesLoader.loadFactories(
 					PropertySourceLoader.class, getClass().getClassLoader());
 		}
@@ -327,7 +329,9 @@ public class ConfigFileApplicationListener
 			this.processedProfiles = new LinkedList<>();
 			this.activatedProfiles = false;
 			this.loaded = new LinkedHashMap<>();
+			//初始化逻辑
 			initializeProfiles();
+			//定位解析资源文件
 			while (!this.profiles.isEmpty()) {
 				Profile profile = this.profiles.poll();
 				if (profile != null && !profile.isDefaultProfile()) {
@@ -337,6 +341,7 @@ public class ConfigFileApplicationListener
 						addToLoaded(MutablePropertySources::addLast, false));
 				this.processedProfiles.add(profile);
 			}
+			//对加载过的配置文件进行排序
 			load(null, this::getNegativeProfileFilter,
 					addToLoaded(MutablePropertySources::addFirst, true));
 			addLoadedPropertySources();
@@ -350,11 +355,20 @@ public class ConfigFileApplicationListener
 		private void initializeProfiles() {
 			// The default profile for these purposes is represented as null. We add it
 			// first so that it is processed first and has lowest priority.
+			//添加默认环境：default。后面的解析流程会解析default文件
 			this.profiles.add(null);
 			Set<Profile> activatedViaProperty = getProfilesActivatedViaProperty();
+
 			this.profiles.addAll(getOtherActiveProfiles(activatedViaProperty));
 			// Any pre-existing active profiles set via property sources (e.g.
 			// System properties) take precedence over those added in config files.
+			/**
+			 * 加载激活的配置文件，会删除默认的配置文件，所以在SpringBoot2.x中，配置文件优先顺序为
+			 * 1）没有配置application-dev.properties文件，优先级顺序：
+			 *		 application-default.properties > application.properties
+			 * 2）同时配置了application-dev.properties文件，优先级顺序：
+			 * 		application-dev.properties > application.properties
+			 */
 			addActiveProfiles(activatedViaProperty);
 			if (this.profiles.size() == 1) { // only has null profile
 				for (String defaultProfileName : this.environment.getDefaultProfiles()) {
@@ -399,6 +413,7 @@ public class ConfigFileApplicationListener
 						+ StringUtils.collectionToCommaDelimitedString(profiles));
 			}
 			this.activatedProfiles = true;
+			//删除默认的配置文件
 			removeUnprocessedDefaultProfiles();
 		}
 
