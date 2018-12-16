@@ -68,8 +68,11 @@ public class AnnotationConfigServletWebServerApplicationContext
 	 * Create a new {@link AnnotationConfigServletWebServerApplicationContext} that needs
 	 * to be populated through {@link #register} calls and then manually
 	 * {@linkplain #refresh refreshed}.
+	 * 构造方法，创建了reader和scanner
 	 */
 	public AnnotationConfigServletWebServerApplicationContext() {
+		//类型分别为AnnotatedBeanDefinitionReader和ClassPathBeanDefinitionScanner用以加载使用注解的bean定义。
+		//new 创建时，会触发构造函数的方法(重要入口)
 		this.reader = new AnnotatedBeanDefinitionReader(this);
 		this.scanner = new ClassPathBeanDefinitionScanner(this);
 	}

@@ -247,7 +247,10 @@ public class SpringApplication {
 	private boolean headless = true;
 
 	private boolean registerShutdownHook = true;
-
+	/**
+	 * ApplicationContextInitializer集合，其中实现内部内可能包含
+	 * BeanFactoryPostProcessor的实现，从而实现springboot对spring的扩展
+	 */
 	private List<ApplicationContextInitializer<?>> initializers;
 
 	private List<ApplicationListener<?>> listeners;
@@ -396,6 +399,13 @@ public class SpringApplication {
 					SpringBootExceptionReporter.class,
 					new Class[] { ConfigurableApplicationContext.class }, context);
 			//第五步：准备容器（2、给容器对象初始化相关环境参数）
+			/**
+			 * 此处会将以下3个PostprocessorBeanFactory加载到容器DefaultListableBeanFactory中：
+			 * //设置配置警告
+			 * ConfigurationWarningsApplicationContextInitializer$ConfigurationWarningsPostProcessor
+			 * SharedMetadataReaderFactoryContextInitializer$CachingMetadataReaderFactoryPostProcessor
+			 * ConfigFileApplicationListener$PropertySourceOrderingPostProcessor
+			 */
 			prepareContext(context, environment, listeners, applicationArguments,
 					printedBanner);
 			//第六步：刷新容器（3、真启启动容器，完成SpringContext启动）
@@ -757,15 +767,18 @@ public class SpringApplication {
 	/**
 	 * Apply any {@link ApplicationContextInitializer}s to the context before it is
 	 * refreshed.
+	 * 在容器刷新之前，添加所有的{@link ApplicationContextInitializer}到context中
 	 * @param context the configured ApplicationContext (not refreshed yet)
 	 * @see ConfigurableApplicationContext#refresh()
 	 */
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	protected void applyInitializers(ConfigurableApplicationContext context) {
+		//getInitializers返回所有的initializer
 		for (ApplicationContextInitializer initializer : getInitializers()) {
 			Class<?> requiredType = GenericTypeResolver.resolveTypeArgument(
 					initializer.getClass(), ApplicationContextInitializer.class);
 			Assert.isInstanceOf(requiredType, context, "Unable to call initializer.");
+			//初始化ApplicationContextInitializer
 			initializer.initialize(context);
 		}
 	}
