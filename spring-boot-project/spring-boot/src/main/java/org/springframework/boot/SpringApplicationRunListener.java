@@ -31,7 +31,8 @@ import org.springframework.core.io.support.SpringFactoriesLoader;
  * @author Phillip Webb
  * @author Dave Syer
  * @author Andy Wilkinson
- * SpringApplication启动时监听器
+ * SpringApplication启动时监听器。
+ * 注意，此子类实现一般带有ordered功能。因为不同的监听器可能有先后序列要求
  */
 public interface SpringApplicationRunListener {
 

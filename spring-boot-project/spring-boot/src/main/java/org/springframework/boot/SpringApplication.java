@@ -105,9 +105,7 @@ import org.springframework.web.context.support.StandardServletEnvironment;
  * &#064;Configuration
  * &#064;EnableAutoConfiguration
  * public class MyApplication  {
- *
  *   // ... Bean definitions
- *
  *   public static void main(String[] args) throws Exception {
  *     SpringApplication.run(MyApplication.class, args);
  *   }
@@ -159,6 +157,12 @@ import org.springframework.web.context.support.StandardServletEnvironment;
  * @see #run(Class, String[])
  * @see #run(Class[], String[])
  * @see #SpringApplication(Class...)
+ *
+ * SpringApplication总结：
+ * 一、总流程可分为两部分，第一部分是准备阶段，第二部分是运行阶段。
+ * 准备阶段是要是通过构造函数，进行类型或者对象的初始化。比如推断当前WEB应用类型、设置应用初始化器ApplicationContextInitializer、
+ * 设置监听器、推断主运行类。详情见  {@link #SpringApplication(Class...)}
+ *
  */
 public class SpringApplication {
 
@@ -300,13 +304,13 @@ public class SpringApplication {
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
 		// 4、推断当前 WEB 应用类型
 		this.webApplicationType = deduceWebApplicationType();
-		// 5、设置应用上线文初始化器，用来初始化指定的 Spring 应用上下文，
+		// 5、设置应用上线文初始化器(接口ApplicationContextInitializer.class)，用来初始化指定的 Spring 应用上下文，
 		// 如注册属性资源、激活 Profiles 等。也是在这里开始首次加载spring.factories文件
 		setInitializers((Collection) getSpringFactoriesInstances(
 				ApplicationContextInitializer.class));
-		// 6、设置监听器，第二次加载spring.factories文件
+		// 6、设置监听器(接口ApplicationListener.class)，第二次加载spring.factories文件
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
-		// 7、推断主入口应用类
+		// 7、推断主入口应用类，通过堆栈信息中找到main方法为应用入口类
 		this.mainApplicationClass = deduceMainApplicationClass();
 	}
 
@@ -378,9 +382,11 @@ public class SpringApplication {
 		// 配置，很多监控工具如jconsole 需要将该值设置为true，系统变量默认为true
 		configureHeadlessProperty();
 		//获取spring.factories中的监听器变量，args为指定的参数数组，默认为当前类SpringApplication
-		//第一步：获取监听器
+		//第一步：获取SpringApplicationRunListener监听器组合类SpringApplicationRunListeners（此监听器为springboot自定义监听器）
+		//注：listener为springBoot中最核心最核心的模块。主要通过此方法来扩展springFramework。加载时是
+		//通过工厂方法进行加载
 		SpringApplicationRunListeners listeners = getRunListeners(args);
-		//发送ApplicationStartingEvent事件
+		//发送springboot中的ApplicationStartingEvent事件
 		listeners.starting();
 		try {
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(
@@ -442,7 +448,7 @@ public class SpringApplication {
 		// Create and configure the environment
 		//创建并配置一个StandardServletEnvironment
 		ConfigurableEnvironment environment = getOrCreateEnvironment();
-		//核心入口，加载默认配置
+		//核心入口，加载默认配置及active profile配置
 		configureEnvironment(environment, applicationArguments.getSourceArgs());
 		//通知环境监听器，默认配置已经加载完成，可以加载项目中的配置文件
 		//监听器为ConfigFileApplicationListener
@@ -536,18 +542,27 @@ public class SpringApplication {
 		Class<?>[] types = new Class<?>[] { SpringApplication.class, String[].class };
 		/**
 		 *  通过反射原理 ，使用工具类SpringFactoriesLoader.loadFactoryNames从
-		 * 从META-INF/spring.factories中获取相应的配置参数
+		 * 从META-INF/spring.factories中获取相应的配置参数。
+		 * SpringApplicationRunListener.class的实现类必须要包含一个构造函数：
+		 * 第一个参数为this（即SpringApplication）,第二个参数为args
 		 */
 		return new SpringApplicationRunListeners(logger, getSpringFactoriesInstances(
 				SpringApplicationRunListener.class, types, this, args));
 	}
 
+	/**
+	 * Facotry 方式加载properties资源(spring.factories)
+	 * @param type
+	 * @param <T>
+	 * @return
+	 */
 	private <T> Collection<T> getSpringFactoriesInstances(Class<T> type) {
 		return getSpringFactoriesInstances(type, new Class<?>[] {});
 	}
 
 	private <T> Collection<T> getSpringFactoriesInstances(Class<T> type,
 			Class<?>[] parameterTypes, Object... args) {
+		//获取当前资源加载器
 		ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 		// Use names and ensure unique to protect against duplicates
 		//使用Set保存，保证加载name唯一性
@@ -584,6 +599,12 @@ public class SpringApplication {
 		return instances;
 	}
 
+	/**
+	 * 根据构造函数中推断出来的webApplicationType来获取对应的Environment
+	 * Environment共有两种，第一种是StandardServletEnvironment，此时与web servlet对应
+	 * 第二种是StandardEnvironment,此时与react和none web对应
+	 * @return
+	 */
 	private ConfigurableEnvironment getOrCreateEnvironment() {
 		if (this.environment != null) {
 			return this.environment;

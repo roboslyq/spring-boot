@@ -28,7 +28,8 @@ import org.springframework.util.ReflectionUtils;
 
 /**
  * A collection of {@link SpringApplicationRunListener}.
- * 启动监听器集合
+ * 启动监听器集合，此监听器是springboot扩展的监听器。当实现此监听器时必须要实现所有的事件接收方法，但方法具体是否需要处理，
+ * 由用户自己决定处理。
  * @author Phillip Webb
  */
 class SpringApplicationRunListeners {
