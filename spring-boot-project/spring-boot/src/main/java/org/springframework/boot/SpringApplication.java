@@ -862,7 +862,10 @@ public class SpringApplication {
 					"Loading source " + StringUtils.arrayToCommaDelimitedString(sources));
 		}
 		/**
-		 * 从Context中获取BeanDefinitionLoader
+		 * 从Context中获取BeanDefinitionLoader,此BeanLoader包含两个加载器：
+		 * this.annotatedReader = new AnnotatedBeanDefinitionReader(registry);
+		 * this.xmlReader = new XmlBeanDefinitionReader(registry);
+		 * 因此，springboot同时支持annotation注解和xml配置两种Bean形式
 		 */
 		BeanDefinitionLoader loader = createBeanDefinitionLoader(
 				getBeanDefinitionRegistry(context), sources);

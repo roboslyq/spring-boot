@@ -70,6 +70,11 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 	}
 
 	@Override
+	/**
+	 * 监听方法：starting()
+	 * 阶段说明：spring应用刚启动
+	 * 事件类型：ApplicationStartingEvent
+	 */
 	public void starting() {
 		//关键代码，这里是创建application启动事件`ApplicationStartingEvent`
 		this.initialMulticaster.multicastEvent(
@@ -77,17 +82,32 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 	}
 
 	@Override
+	/**
+	 * 监听方法：environmentPrepared(ConfigurableEnvironment environment)
+	 * 阶段说明：ConfigurableEnvironment环境已经准备好，允许将其调整
+	 * 事件类型：ApplicationEnvironmentPreparedEvent
+	 */
 	public void environmentPrepared(ConfigurableEnvironment environment) {
 		this.initialMulticaster.multicastEvent(new ApplicationEnvironmentPreparedEvent(
 				this.application, this.args, environment));
 	}
 
 	@Override
+	/**
+	 * 监听方法：contextPrepared(ConfigurableApplicationContext context)
+	 * 阶段说明：ConfigurableApplicationContext context已经准备好，允许将其调整
+	 * 事件类型：此处无事件实现
+	 */
 	public void contextPrepared(ConfigurableApplicationContext context) {
 
 	}
 
 	@Override
+	/**
+	 * 监听方法：contextLoaded(ConfigurableApplicationContext context)
+	 * 阶段说明：ConfigurableApplicationContext已经装载，但仍未启动
+	 * 事件类型：ApplicationPreparedEvent
+	 */
 	public void contextLoaded(ConfigurableApplicationContext context) {
 		for (ApplicationListener<?> listener : this.application.getListeners()) {
 			if (listener instanceof ApplicationContextAware) {
@@ -100,18 +120,33 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 	}
 
 	@Override
+	/**
+	 * 监听方法：started(ConfigurableApplicationContext context)
+	 * 阶段说明：ConfigurableApplicationContext已经启动，此时spring Bean已经初始化完成
+	 * 事件类型：ApplicationStartedEvent
+	 */
 	public void started(ConfigurableApplicationContext context) {
 		context.publishEvent(
 				new ApplicationStartedEvent(this.application, this.args, context));
 	}
 
 	@Override
+	/**
+	 * 监听方法：running(ConfigurableApplicationContext context)
+	 * 阶段说明：spring 应用正在运行
+	 * 事件类型：ApplicationReadyEvent
+	 */
 	public void running(ConfigurableApplicationContext context) {
 		context.publishEvent(
 				new ApplicationReadyEvent(this.application, this.args, context));
 	}
 
 	@Override
+	/**
+	 * 监听方法：failed(ConfigurableApplicationContext context, Throwable exception)
+	 * 阶段说明：spring 应用运行失败
+	 * 事件类型：ApplicationFailedEvent
+	 */
 	public void failed(ConfigurableApplicationContext context, Throwable exception) {
 		ApplicationFailedEvent event = new ApplicationFailedEvent(this.application,
 				this.args, context, exception);
