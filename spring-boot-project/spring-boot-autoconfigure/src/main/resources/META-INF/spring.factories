@@ -15,7 +15,7 @@ org.springframework.boot.autoconfigure.condition.ConditionEvaluationReportAutoCo
 org.springframework.boot.autoconfigure.AutoConfigurationImportFilter=\
 org.springframework.boot.autoconfigure.condition.OnClassCondition
 
-# Auto Configure
+# Auto ConfigureDispatcherServletAutoConfiguration
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 org.springframework.boot.autoconfigure.admin.SpringApplicationAdminJmxAutoConfiguration,\
 org.springframework.boot.autoconfigure.aop.AopAutoConfiguration,\

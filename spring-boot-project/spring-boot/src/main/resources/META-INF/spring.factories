@@ -26,8 +26,9 @@ org.springframework.boot.context.ContextIdApplicationContextInitializer,\
 org.springframework.boot.context.config.DelegatingApplicationContextInitializer,\
 org.springframework.boot.web.context.ServerPortInfoApplicationContextInitializer
 
-# Application Listeners
+# 监听器实现源于Spring : Application Listeners
 # Applicatoin启动时监听器
+# 支持事件类型源于Spring Boot扩展
 org.springframework.context.ApplicationListener=\
 org.springframework.boot.ClearCachesApplicationListener,\
 org.springframework.boot.builder.ParentContextCloserApplicationListener,\
