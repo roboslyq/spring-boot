@@ -305,10 +305,12 @@ public class SpringApplication {
 		// 4、推断当前 WEB 应用类型
 		this.webApplicationType = deduceWebApplicationType();
 		// 5、设置应用上线文初始化器(接口ApplicationContextInitializer.class)，用来初始化指定的 Spring 应用上下文，
-		// 如注册属性资源、激活 Profiles 等。也是在这里开始首次加载spring.factories文件
+		// 如注册属性资源、激活 Profiles 等。也是在这里开始首次加载spring.factories文件，具体加载的是ApplicationContextInitializer这个对应的key
+		// 默认的值是7个属性。
 		setInitializers((Collection) getSpringFactoriesInstances(
 				ApplicationContextInitializer.class));
-		// 6、设置监听器(接口ApplicationListener.class)，第二次加载spring.factories文件
+		// 6、设置监听器(接口ApplicationListener.class)，第二次加载spring.factories文件，加载 spring.factories中的ApplicationListener接口
+		// 对应的key,默认有11个
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
 		// 7、推断主入口应用类，通过堆栈信息中找到main方法为应用入口类
 		this.mainApplicationClass = deduceMainApplicationClass();
@@ -384,7 +386,7 @@ public class SpringApplication {
 		//获取spring.factories中的监听器变量，args为指定的参数数组，默认为当前类SpringApplication
 		//第一步：获取SpringApplicationRunListener监听器组合类SpringApplicationRunListeners（此监听器为springboot自定义监听器）
 		//注：listener为springBoot中最核心最核心的模块。主要通过此方法来扩展springFramework。加载时是
-		//通过工厂方法进行加载
+		//通过工厂方法进行监听器加载
 		SpringApplicationRunListeners listeners = getRunListeners(args);
 		//发送springboot中的ApplicationStartingEvent事件
 		listeners.starting();
@@ -541,8 +543,7 @@ public class SpringApplication {
 	private SpringApplicationRunListeners getRunListeners(String[] args) {
 		Class<?>[] types = new Class<?>[] { SpringApplication.class, String[].class };
 		/**
-		 *  通过反射原理 ，使用工具类SpringFactoriesLoader.loadFactoryNames从
-		 * 从META-INF/spring.factories中获取相应的配置参数。
+		 * 通过反射原理 ，使用工具类SpringFactoriesLoader.loadFactoryNames从从META-INF/spring.factories中获取相应的配置参数。
 		 * SpringApplicationRunListener.class的实现类必须要包含一个构造函数：
 		 * 第一个参数为this（即SpringApplication）,第二个参数为args
 		 */
@@ -552,7 +553,7 @@ public class SpringApplication {
 
 	/**
 	 * Facotry 方式加载properties资源(spring.factories)
-	 * @param type
+	 * @param type 具体的key类型，与spring.factories配置中的key对应
 	 * @param <T>
 	 * @return
 	 */
@@ -560,6 +561,14 @@ public class SpringApplication {
 		return getSpringFactoriesInstances(type, new Class<?>[] {});
 	}
 
+	/**
+	 * 从spring.factories中获取指定type对应的所有属性，并且完成实例化。
+	 * @param type
+	 * @param parameterTypes
+	 * @param args
+	 * @param <T>
+	 * @return
+	 */
 	private <T> Collection<T> getSpringFactoriesInstances(Class<T> type,
 			Class<?>[] parameterTypes, Object... args) {
 		//获取当前资源加载器
@@ -568,7 +577,7 @@ public class SpringApplication {
 		//使用Set保存，保证加载name唯一性
 		Set<String> names = new LinkedHashSet<>(
 				SpringFactoriesLoader.loadFactoryNames(type, classLoader));
-		//通过反射创建实例
+		//通过反射创建实例(具体类全额限额名从spring.factories获取)
 		List<T> instances = createSpringFactoriesInstances(type, parameterTypes,
 				classLoader, args, names);
 		AnnotationAwareOrderComparator.sort(instances);
@@ -576,6 +585,9 @@ public class SpringApplication {
 	}
 
 	@SuppressWarnings("unchecked")
+	/**
+	 * 根据 类的全额限定名称创建具体的实例
+	 */
 	private <T> List<T> createSpringFactoriesInstances(Class<T> type,
 			Class<?>[] parameterTypes, ClassLoader classLoader, Object[] args,
 			Set<String> names) {
